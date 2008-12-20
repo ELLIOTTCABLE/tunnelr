@@ -1,1 +1,51 @@
 #!/usr/bin/env ruby -Ku
+($:.unshift File.expand_path(File.join( File.dirname(__FILE__), '..', 'lib' ))).uniq!
+%w[tunnelr rubygems optparse].each {|dep| require dep }
+
+options = Hash.new
+command = ARGV.shift
+banner = <<END
+Usage:
+`tunnelr start [options] remote.server.tld:12345 localhost:3000`
+`tunnelr launchd [options] remote.server.tld:12345 localhost:3000`
+`tunnelr setup [options] remote.server.tld`
+END
+
+case command
+when 'start'
+  OptionParser.new do |opts|
+    opts.banner = ""
+
+    opts.on("-v", "--[no-]verbose", "Run verbosely") do |v|
+      options[:verbose] = v
+    end
+
+    opts.on("-d", "--[no-]debug", "Run extremely verbosely (this sets -v)") do |d|
+      options[:verbose], $-d = d
+    end
+
+    opts.on_tail("--help", "Show this help") do
+      puts opts
+      exit
+    end
+    opts.on_tail("--version", "Show version") do
+      puts "I'm tunnelr v#{TunnelR::Version}"
+      exit
+    end
+  end.parse!
+  
+  remote_host, remote_port, local_host, local_port = ARGV.map{|e|e.split':'}.flatten
+  raise "The only argument allowed for the local host is, well, 'localhost'" unless local_host == "localhost"
+  
+  puts "Opening a tunnel at #{remote_port} on #{remote_host} that dumps locally on #{local_port}." if options[:verbose]
+  command = "autossh -M 49777 -nNT -g -R *:#{remote_port}:0.0.0.0:#{local_port} #{remote_host}"
+  puts command if $-d
+  exec command
+when 'launchd'
+  raise "Not currently implemented!"
+when 'setup'
+  raise "Not currently implemented!"
+else
+  puts banner
+  exit(9)
+end
