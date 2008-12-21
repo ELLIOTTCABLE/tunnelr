@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby -Ku
 ($:.unshift File.expand_path(File.join( File.dirname(__FILE__), '..', 'lib' ))).uniq!
-%w[tunnelr rubygems optparse].each {|dep| require dep }
+%w[tunnelr rubygems optparse fileutils builder].each {|dep| require dep }
 
 options = Hash.new
 command = ARGV.shift
@@ -64,7 +64,99 @@ when 'start'
 # = `tunnelr launchd` =
 # =====================
 when 'launchd'
-  raise "Not currently implemented!"
+  options = {
+    :ssh_path   => '/usr/bin/ssh',
+    :ssh_args   => '-nNTg',
+    :directory  => '~/Library/LaunchAgents'
+  }
+  OptionParser.new do |opts|
+    opts.banner = banner
+
+    opts.on("-v", "--[no-]verbose", "Run verbosely") do |v|
+      options[:verbose] = v
+    end
+
+    opts.on("-d", "--[no-]debug", "Run extremely verbosely (this sets -v)") do |d|
+      options[:verbose] = $-d = d
+    end
+    
+    opts.on("-r", "--[no-]dry-run", "Run without writing to disk (this sets -d)") do |r|
+      options[:dry_run] = options[:verbose] = $-d = r
+    end
+    
+    opts.on("-P", "--path [PATH]", "Filesystem path to your `ssh` binary (defaults to",
+                                   "  OS X's install path, `/usr/bin/ssh`)") do |path|
+      options[:ssh_path] = path
+    end
+    
+    opts.on("-a", "--args [ARGS]", "Arguments to be passed to SSH (defaults to -nNTg)") do |args|
+      options[:ssh_args] = args
+    end
+    
+    opts.on("-D", "--directory [DIR]", "Where to save the script (see the \"Files\" section",
+                                       "  of `man launchd.plist` for available locations,",
+                                       "  defaults to `~/Library/LaunchAgents`)") do |dir|
+      options[:directory] = dir
+    end
+    
+    opts.on("-i", "--identity [IDENT]", "Path to your private key (defaults to letting SSH decide)") do |key|
+      options[:key_file] = key
+    end
+
+    opts.on_tail("--help", "Show this help") do
+      puts opts
+      exit
+    end
+    opts.on_tail("--version", "Show version") do
+      puts "I'm tunnelr v#{TunnelR::Version}"
+      exit
+    end
+  end.parse!
+  
+  remote_host, remote_port, local_host, local_port = ARGV.map{|e|e.split':'}.flatten
+  raise "The only argument allowed for the local host is, well, 'localhost'" unless local_host == "localhost"
+  id = "rb.tunnelr.from.#{remote_host}:#{remote_port}.to.#{local_port}"
+  
+  
+  plist = ""
+  x = Builder::XmlMarkup.new :indent => 1, :target => plist
+  x.instruct!
+  x.declare! :DOCTYPE, :plist, :PUBLIC, "-//Apple Computer//DTD PLIST 1.0//EN", "http://www.apple.com/DTDs/PropertyList-1.0.dtd"
+  x.plist(:version => 1.0) {
+    x.dict {
+      x.key 'Label'; x.string id
+      x.key 'UserName'; x.string %x[whoami].chomp
+      x.key 'ProgramArguments'; x.array {
+        x.string options[:ssh_path]
+        x.string options[:ssh_args]
+        x.string "-i #{File.expand_path(options[:key_file])}" if options[:key_file]
+        x.string "-R *:#{remote_port}:0.0.0.0:#{local_port}"
+        x.string remote_host
+      }
+      x.key 'KeepAlive'; x.true
+      x.key 'RunAtLoad'; x.true
+    }
+  }
+  if $-d
+    puts '---- -- ---- ! ---- -- ----'
+    puts plist
+    puts '---- -- ---- ! ---- -- ----'
+  end
+  unless options[:dry_run]
+    path = File.join(File.expand_path(options[:directory]), "#{id}.plist")
+    puts "Writing property list…" if options[:verbose]
+    File.open path, File::CREAT|File::TRUNC|File::RDWR do |f|
+      f.write plist
+    end
+    puts "Loading property list into launchd…" if options[:verbose]
+    command = "launchctl load #{path}"
+    p command if $-d
+    exec command
+  end
+
+# ===================
+# = `tunnelr setup` =
+# ===================
 when 'setup'
   raise "Not currently implemented!"
 
