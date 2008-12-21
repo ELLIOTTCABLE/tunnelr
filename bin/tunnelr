@@ -26,7 +26,20 @@ when 'start'
     end
 
     opts.on("-d", "--[no-]debug", "Run extremely verbosely (this sets -v)") do |d|
-      options[:verbose], $-d = d
+      options[:verbose] = $-d = d
+    end
+    
+    opts.on("-P", "--path [PATH]", "Filesystem path to your `autossh` binary (defaults to the ",
+                                    "  MacPorts' install path, `/opt/local/bin/autossh`)") do |path|
+      options[:autossh_path] = path || '/opt/local/bin/autossh'
+    end
+    
+    opts.on("-M", "--monitor-port [PORT]", Integer, "Remote port on which autossh should monitor (defaults to 50830)") do |port|
+      options[:autossh_port] = port.zero? ? 50830 : port
+    end
+    
+    opts.on("-a", "--args [ARGS]", "Arguments to be passed to SSH (defaults to -nNTg)") do |args|
+      options[:ssh_args] = args.empty? ? '-nNTg' : args
     end
 
     opts.on_tail("--help", "Show this help") do
