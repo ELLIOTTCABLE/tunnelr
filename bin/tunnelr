@@ -19,7 +19,7 @@ case command
 # ===================
 when 'start'
   OptionParser.new do |opts|
-    opts.banner = ""
+    opts.banner = banner
 
     opts.on("-v", "--[no-]verbose", "Run verbosely") do |v|
       options[:verbose] = v
