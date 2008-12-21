@@ -9,6 +9,7 @@ Usage:
 `tunnelr start [options] remote.server.tld:12345 localhost:3000`
 `tunnelr launchd [options] remote.server.tld:12345 localhost:3000`
 `tunnelr setup [options] remote.server.tld`
+
 END
 
 case command
