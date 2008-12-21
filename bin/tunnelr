@@ -55,9 +55,9 @@ when 'start'
   remote_host, remote_port, local_host, local_port = ARGV.map{|e|e.split':'}.flatten
   raise "The only argument allowed for the local host is, well, 'localhost'" unless local_host == "localhost"
   
-  puts "Opening a tunnel at #{remote_port} on #{remote_host} that dumps locally on #{local_port}." if options[:verbose]
-  command = "autossh -M 49777 -nNT -g -R *:#{remote_port}:0.0.0.0:#{local_port} #{remote_host}"
-  puts command if $-d
+  puts "Opening a tunnel at #{remote_port} on #{remote_host} that dumps locally on #{local_port}…" if options[:verbose]
+  command = "#{options[:autossh_path]} -M #{options[:autossh_port]} #{options[:ssh_args]} -R *:#{remote_port}:0.0.0.0:#{local_port} #{remote_host}"
+  p command if $-d
   exec command
 
 # =====================
