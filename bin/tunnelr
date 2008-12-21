@@ -13,6 +13,10 @@ Usage:
 END
 
 case command
+
+# ===================
+# = `tunnelr start` =
+# ===================
 when 'start'
   OptionParser.new do |opts|
     opts.banner = ""
@@ -42,11 +46,24 @@ when 'start'
   command = "autossh -M 49777 -nNT -g -R *:#{remote_port}:0.0.0.0:#{local_port} #{remote_host}"
   puts command if $-d
   exec command
+
+# =====================
+# = `tunnelr launchd` =
+# =====================
 when 'launchd'
   raise "Not currently implemented!"
 when 'setup'
   raise "Not currently implemented!"
+
+# ==================
+# = Other commands =
+# ==================
+when 'list'
+  exec "launchctl list | grep 'tunnelr'"
 else
   puts banner
   exit(9)
 end
+
+# Nothing worth doing here, since every command above exit()s or exec()s
+# before we get here.
